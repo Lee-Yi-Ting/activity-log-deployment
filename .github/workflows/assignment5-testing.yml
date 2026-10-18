@@ -3,7 +3,7 @@ name: Assignment 5 Automated Testing
 
 on:
   push:
-    branches: [master]
+    branches: [master, assignment5-failure-demo]
     paths:
       - '.github/workflows/assignment5-testing.yml'
       - 'test/**'
@@ -58,8 +58,13 @@ jobs:
           name: build-artifact
           path: dist/
 
+      - 
       - name: Run unit tests
-        run: npm run test:unit
+        run: |
+          npm run test:unit
+          echo "Simulating a test failure for Assignment 5"
+          exit 1
+
 
       - name: Generate coverage report
         run: |
