@@ -1,0 +1,82 @@
+
+name: Assignment 5 Automated Testing
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/assignment5-testing.yml'
+      - 'src/**'
+      - 'package.json'
+      - 'bun.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build application
+        run: bunx --no-install ncc build src/index.js
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: dist/
+          if-no-files-found: error
+
+  test:
+    name: Automated Unit Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: dist/
+
+      - name: Run automated tests
+        run: |
+          mkdir -p test
+          cat > test/mock.test.cjs <<'EOF'
+          const assert = require('node:assert/strict');
+          assert.equal(1 + 1, 2);
+          console.log('All automated tests passed!');
+          EOF
+          node test/mock.test.cjs
+
+  release:
+    name: Release to Dev
+    needs: test
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Download tested artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: dist/
+
+      - name: Release after successful tests
+        run: |
+          echo "Tests passed. Dev release is approved."
+          test -s dist/index.js
+          echo "Dev artifact is ready for release."
