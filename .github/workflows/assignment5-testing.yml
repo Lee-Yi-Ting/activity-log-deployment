@@ -6,6 +6,9 @@ on:
     branches: [master]
     paths:
       - '.github/workflows/assignment5-testing.yml'
+      - 'test/**'
+      - 'src/**'
+      - 'package.json'
   workflow_dispatch:
 
 permissions:
@@ -33,10 +36,12 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  test:
-    name: Automated Unit Tests
+  test-unit:
+    name: Unit Tests and Coverage
     needs: build
     runs-on: ubuntu-latest
+    env:
+      TEST_ENV: staging
     steps:
       - uses: actions/checkout@v4
 
@@ -44,25 +49,56 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
           path: dist/
 
-      - name: Run automated tests
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Generate coverage report
         run: |
-          mkdir -p test
-          cat > test/mock.test.cjs <<'EOF'
-          const assert = require('node:assert/strict');
-          assert.equal(1 + 1, 2);
-          console.log('All automated tests passed!');
-          EOF
-          node test/mock.test.cjs
+          mkdir -p coverage
+          node --test --experimental-test-coverage \
+            --test-reporter=spec \
+            --test-reporter-destination=coverage/results.txt \
+            test/unit/*.test.mjs
+          cat coverage/results.txt
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: error
+
+  test-integration:
+    name: Integration Tests
+    needs: test-unit
+    runs-on: ubuntu-latest
+    env:
+      TEST_ENV: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Run integration tests
+        run: npm run test:integration
 
   release:
     name: Release to Dev
-    needs: test
+    needs: test-integration
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -74,6 +110,6 @@ jobs:
 
       - name: Verify release artifact
         run: |
-          echo "Tests passed. Preparing dev release."
+          echo "Unit and integration tests passed."
           test -s dist/index.js
           echo "Dev artifact is ready."
