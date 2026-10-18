@@ -8,11 +8,17 @@
 		"commitlint-config-gitmoji": "^2.3.1",
 		"yaml": "^2.9.0"
 	},
-	"scripts": {
-		"watch": "ncc build src/index.js --watch --license licenses.txt",
-		"build": "bun install && bunx ncc build src/index.js --license licenses.txt",
-		"lint:commit": "commitlint --last --verbose"
-	},
+	
+"scripts": {
+  "watch": "ncc build src/index.js --watch --license licenses.txt",
+  "build": "bun install && bunx ncc build src/index.js --license licenses.txt",
+  "lint:commit": "commitlint --last --verbose",
+  "test": "npm run test:unit && npm run test:integration",
+  "test:unit": "node --test test/unit/*.test.mjs",
+  "test:integration": "node --test test/integration/*.test.mjs",
+  "test:coverage": "node --test --experimental-test-coverage test/unit/*.test.mjs"
+}
+,
 	"devDependencies": {
 		"@commitlint/cli": "^21.2.3",
 		"@vercel/ncc": "^0.44.1"
