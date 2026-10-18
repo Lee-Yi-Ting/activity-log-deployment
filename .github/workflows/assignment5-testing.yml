@@ -97,10 +97,14 @@ jobs:
         run: npm run test:integration
 
   release:
-    name: Release to Dev
+   
+  deploy-staging:
+    name: Deploy to Staging
     needs: test-integration
     runs-on: ubuntu-latest
-    environment: dev
+    environment: staging
+    env:
+      TEST_ENV: staging
     steps:
       - name: Download tested artifact
         uses: actions/download-artifact@v4
@@ -108,8 +112,29 @@ jobs:
           name: build-artifact
           path: dist/
 
-      - name: Verify release artifact
+      - name: Verify staging artifact
         run: |
-          echo "Unit and integration tests passed."
+          echo "Deploying to staging..."
           test -s dist/index.js
-          echo "Dev artifact is ready."
+          echo "Staging verification successful."
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TEST_ENV: prod
+    steps:
+      - name: Download tested artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: dist/
+
+      - name: Verify production artifact
+        run: |
+          echo "Production deployment approved."
+          test -s dist/index.js
+          echo "Production artifact verification successful."
+
